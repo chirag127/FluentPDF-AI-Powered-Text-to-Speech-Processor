@@ -1,0 +1,58 @@
+# === APEX CI/CD WORKFLOW ===
+# For: FluentPDF-AI-Powered-Text-to-Speech-Processor
+# Standard: 2025/2026 Python Apex Toolchain
+
+name: CI - Build, Lint, Test & Coverage
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+permissions:
+  contents: read
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.10", "3.11", "3.12"]
+
+    steps:
+    - name: 1. Checkout Repository
+      uses: actions/checkout@v4
+
+    - name: 2. Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v5
+      with:
+        python-version: ${{ matrix.python-version }}
+
+    - name: 3. Install Apex Toolchain (uv)
+      run: |
+        pip install uv
+        uv --version
+
+    - name: 4. Install Project Dependencies
+      run: uv pip install -r requirements.txt --system
+
+    - name: 5. Lint with Ruff
+      run: uv run ruff check .
+
+    - name: 6. Check Formatting with Ruff
+      run: uv run ruff format --check .
+
+    - name: 7. Run Tests with Pytest and Generate Coverage Report
+      run: uv run pytest --cov=src --cov-report=xml  # Assuming source code is in 'src/'
+
+    - name: 8. Upload Coverage to Codecov
+      uses: codecov/codecov-action@v4
+      with:
+        token: ${{ secrets.CODECOV_TOKEN }}
+        file: ./coverage.xml
+        fail_ci_if_error: true
+        verbose: true
+      env:
+        CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
